@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Panel de Control — Aura Eventos</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-mount"></div>
+  <div class="main-content">
+
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;padding-bottom:1.25rem">
+      <div>
+        <div class="page-title">Panel de Control</div>
+        <div class="page-subtitle" id="dash-date"></div>
+      </div>
+      <div style="display:flex;gap:.625rem;align-items:center">
+        <button class="btn btn-icon btn-ghost" id="notif-btn" style="position:relative"
+                onclick="window.location.href='agenda.html'" title="Solicitudes pendientes">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span id="notif-badge" style="position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;
+            font-size:.6rem;font-weight:800;width:16px;height:16px;border-radius:50%;display:none;align-items:center;justify-content:center"></span>
+        </button>
+        <button class="btn btn-primary" onclick="window.location.href='inventario.html'">+ Agregar Artículo</button>
+      </div>
+    </div>
+
+    <div class="page-body" style="padding-top:0">
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon stat-icon-green">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="stat-value" id="s-ingresos">$0</div>
+          <div class="stat-label">Ingresos Totales</div>
+          <div class="stat-sub stat-up">↑ +18% vs período anterior</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-icon-yellow">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="stat-value" id="s-pending">0</div>
+          <div class="stat-label">Solicitudes Pendientes</div>
+          <div class="stat-sub" id="pend-sub"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-icon-green">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="stat-value" id="s-eventos">0</div>
+          <div class="stat-label">Eventos Confirmados</div>
+          <div class="stat-sub stat-up">↑ +5 este mes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-icon-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </div>
+          <div class="stat-value" id="s-util">0%</div>
+          <div class="stat-label">Utilización Inventario</div>
+          <div class="stat-sub stat-up">↑ Alta demanda</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:1.25rem;margin-bottom:1.25rem">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+            <h3 style="font-size:1rem;font-weight:700;color:var(--text-primary)">Ingresos Históricos</h3>
+            <div style="display:flex;gap:.35rem" id="chart-toggle">
+              <button class="btn btn-sm btn-primary" id="btn-mensual" onclick="setChartMode('mensual')">Mensual</button>
+              <button class="btn btn-sm btn-ghost"   id="btn-semanal" onclick="setChartMode('semanal')">Semanal</button>
+            </div>
+          </div>
+
+          <div class="chart-container" style="height:160px">
+
+            <div class="chart-y-axis" id="chart-y-axis"></div>
+
+            <div class="chart-body">
+              <div class="chart-gridlines" id="chart-gridlines"></div>
+              <div class="chart-bars-row" id="chart-bars"></div>
+              <div class="chart-x-axis"   id="chart-x-axis"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:1.5rem;padding-top:.75rem;border-top:1px solid var(--card-border);margin-top:.75rem;font-size:.875rem;flex-wrap:wrap">
+            <div><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.1rem">Este período</div><div style="font-weight:800;color:var(--accent)" id="c-mes">$0</div></div>
+            <div><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.1rem">Promedio</div><div style="font-weight:700;color:var(--text-primary)" id="c-avg">$0</div></div>
+            <div><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.1rem">Proyección</div><div style="font-weight:700;color:var(--accent)" id="c-proj">$0</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:.25rem">Top Artículos</h3>
+          <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1rem">Por frecuencia de solicitud</p>
+          <div id="top-items"></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--card-border)">
+            <h3 style="font-size:.9375rem;font-weight:700;color:var(--text-primary)">Solicitudes Recientes</h3>
+            <a href="agenda.html" style="color:var(--accent);font-size:.8125rem;font-weight:600">Ver todas →</a>
+          </div>
+          <div id="recent-list"></div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--card-border)">
+            <h3 style="font-size:.9375rem;font-weight:700;color:var(--text-primary)">Entregas Próximas</h3>
+            <a href="agenda.html" style="color:var(--accent);font-size:.8125rem;font-weight:600">Ver agenda →</a>
+          </div>
+          <div id="deliveries-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/store.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/icons.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+
+Store.Auth.requireAuth('admin');
+document.getElementById('dash-date').textContent =
+  new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+let chartMode = 'mensual';
+
+function setChartMode(mode) {
+  chartMode = mode;
+  document.getElementById('btn-mensual').className = mode==='mensual' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost';
+  document.getElementById('btn-semanal').className = mode==='semanal' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost';
+  renderChart();
+}
+
+function renderChart() {
+  const aprobadas = Store.Solicitudes.all().filter(s => s.estado === 'aprobado');
+  const ingresos  = aprobadas.reduce((t,s) => t + s.total, 0);
+
+  const nombresMes = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const hoy = new Date();
+  let labels, values;
+
+  const fechaDe = s => new Date(s.aprobadoAt || s.createdAt || s.fecha);
+
+  if (chartMode === 'mensual') {
+
+    labels = []; values = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+      labels.push(nombresMes[d.getMonth()]);
+      const suma = aprobadas
+        .filter(s => { const f = fechaDe(s); return f.getFullYear() === d.getFullYear() && f.getMonth() === d.getMonth(); })
+        .reduce((t,s) => t + s.total, 0);
+      values.push(suma);
+    }
+  } else {
+
+    labels = []; values = [];
+    for (let i = 6; i >= 0; i--) {
+      const fin    = new Date(hoy); fin.setDate(hoy.getDate() - (i * 7));
+      const inicio = new Date(fin); inicio.setDate(fin.getDate() - 6);
+      labels.push('Sem ' + (7 - i));
+      const suma = aprobadas
+        .filter(s => { const f = fechaDe(s); return f >= inicio && f <= fin; })
+        .reduce((t,s) => t + s.total, 0);
+      values.push(suma);
+    }
+  }
+
+  const maxV     = Math.max(...values, 1000);
+  const fmtMoney = v => '$' + (v >= 1000 ? (v/1000).toFixed(v%1000===0?0:1)+'k' : Math.round(v));
+
+  const steps   = 5;
+  const yLabels = Array.from({length: steps}, (_,i) => Math.round((maxV / (steps-1)) * i));
+  document.getElementById('chart-y-axis').innerHTML =
+    yLabels.map(v => `<span class="chart-y-label">${fmtMoney(v)}</span>`).join('');
+
+  document.getElementById('chart-gridlines').innerHTML =
+    Array.from({length: steps}, () => `<div class="chart-gridline"></div>`).join('');
+
+  const BAR_H = 110;
+  document.getElementById('chart-bars').innerHTML = values.map((v,i) => {
+    const h    = Math.max(4, Math.round((v / maxV) * BAR_H));
+    const curr = i === values.length - 1;
+    return `<div class="chart-col" style="height:${BAR_H}px">
+      <div class="chart-bar ${curr ? 'current' : ''}" style="height:${h}px">
+        <div class="chart-bar-tooltip">${fmtMoney(v)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('chart-x-axis').innerHTML =
+    labels.map(lbl => `<span class="chart-x-label">${lbl}</span>`).join('');
+
+  const current = values[values.length - 1];
+
+  const conVentas = values.filter(v => v > 0);
+  const avg       = conVentas.length ? Math.round(conVentas.reduce((a,b) => a+b, 0) / conVentas.length) : 0;
+  document.getElementById('c-mes').textContent  = UI.fmt.money(current);
+  document.getElementById('c-avg').textContent  = UI.fmt.money(avg);
+  document.getElementById('c-proj').textContent = UI.fmt.money(Math.round(current * 1.08));
+}
+
+function renderDash() {
+  const allSols  = Store.Solicitudes.all();
+  const approved = allSols.filter(s=>s.estado==='aprobado');
+  const pending  = allSols.filter(s=>s.estado==='pendiente');
+  const allArts  = Store.Articulos.allAdmin();
+  const users    = Store.Usuarios.clientes();
+  const ingresos = approved.reduce((t,s)=>t+s.total,0);
+
+  document.getElementById('s-ingresos').textContent = UI.fmt.money(ingresos);
+  document.getElementById('s-pending').textContent  = pending.length;
+  document.getElementById('s-eventos').textContent  = approved.length;
+  document.getElementById('pend-sub').textContent   = pending.length>0?'Requieren acción':'Al día';
+  document.getElementById('pend-sub').style.color   = pending.length>0?'var(--warn)':'var(--accent)';
+
+  const tStock = allArts.reduce((t,a)=>t+a.stockTotal,0);
+  const rent   = allArts.reduce((t,a)=>t+a.rentados,0);
+  document.getElementById('s-util').textContent = tStock>0?Math.round((rent/tStock)*100)+'%':'0%';
+
+  if (pending.length>0) {
+    const nb=document.getElementById('notif-badge');
+    nb.textContent=pending.length; nb.style.display='flex';
+  }
+
+  renderChart();
+
+  const artCount={};
+  allSols.forEach(s=>s.articulos.forEach(i=>{artCount[i.artId]=(artCount[i.artId]||0)+1;}));
+  const sorted=Object.entries(artCount).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  const topTotal=sorted.reduce((t,[,c])=>t+c,0)||1;
+  document.getElementById('top-items').innerHTML = sorted.length===0
+    ? '<p style="font-size:.875rem;color:var(--text-muted)">Sin datos aún.</p>'
+    : sorted.map(([id,count])=>{
+        const a=Store.Articulos.byId(id);
+        const pct=Math.round((count/topTotal)*100);
+        return `<div style="margin-bottom:.875rem">
+          <div style="display:flex;justify-content:space-between;font-size:.8125rem;margin-bottom:.3rem">
+            <span style="color:var(--text-secondary)">${a?.nombre||id}</span>
+            <span style="font-weight:700;color:var(--text-primary)">${pct}%</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:var(--accent)"></div></div>
+        </div>`;
+      }).join('');
+
+  const recent=[...allSols].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,5);
+  document.getElementById('recent-list').innerHTML = recent.length===0
+    ? '<div class="empty-state" style="padding:1.5rem"><p>Sin solicitudes.</p></div>'
+    : `<table class="table"><thead><tr><th>Cliente</th><th>Fecha</th><th>Total</th><th>Estado</th></tr></thead><tbody>
+       ${recent.map(s=>{
+         const u=users.find(u=>u.id===s.clienteId);
+         return `<tr style="cursor:pointer" onclick="window.location.href='agenda.html'">
+           <td style="font-size:.8125rem;font-weight:600;color:var(--text-primary)">${u?.nombre||'?'} ${u?.apellidos||''}</td>
+           <td style="font-size:.8125rem;color:var(--text-muted)">${UI.fmt.date(s.fecha)}</td>
+           <td style="font-size:.8125rem;font-weight:700;color:var(--text-primary)">${UI.fmt.money(s.total)}</td>
+           <td>${UI.statusBadge(s.estado)}</td>
+         </tr>`;
+       }).join('')}</tbody></table>`;
+
+  const todayStr=new Date().toISOString().split('T')[0];
+  const upcoming=approved.filter(s=>s.fecha>=todayStr).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,4);
+  document.getElementById('deliveries-list').innerHTML = upcoming.length===0
+    ? '<div class="empty-state" style="padding:1.5rem"><p>Sin entregas próximas.</p></div>'
+    : `<table class="table"><thead><tr><th>Artículo</th><th>Destino</th><th>Fecha</th></tr></thead><tbody>
+       ${upcoming.map(s=>{
+         const a=Store.Articulos.byId(s.articulos[0]?.artId);
+         return `<tr>
+           <td style="font-size:.8125rem;font-weight:600;color:var(--text-primary)">${a?.nombre||'Artículo'}</td>
+           <td style="font-size:.8125rem;color:var(--text-muted)">${(s.direccion||'CDMX').split(',')[0]}</td>
+           <td style="font-size:.8125rem;font-weight:600;color:var(--accent)">${UI.fmt.date(s.fecha)}</td>
+         </tr>`;
+       }).join('')}</tbody></table>`;
+}
+
+(async () => {
+  try {
+    await API.init(['articulos', 'solicitudes', 'usuarios']);
+  } catch (err) { API.fatal(err); return; }
+  renderSidebar('dashboard-admin');
+  renderDash();
+})();
+
+</script>
+</body>
+</html>

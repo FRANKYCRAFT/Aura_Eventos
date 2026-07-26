@@ -1,0 +1,59 @@
+package mx.aura.eventos.service;
+
+import mx.aura.eventos.dao.CategoriaDao;
+import mx.aura.eventos.db.Database;
+import mx.aura.eventos.exception.NegocioException;
+import mx.aura.eventos.exception.RecursoNoEncontradoException;
+import mx.aura.eventos.model.Categoria;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.List;
+
+public class CategoriaServiceImpl implements CategoriaService {
+
+    private static final int LONGITUD_MAXIMA = 40;
+
+    private final CategoriaDao categoriaDao = new CategoriaDao();
+
+    @Override
+    public List<Categoria> listar() {
+        try (Connection con = Database.getConnection()) {
+            return categoriaDao.todas(con);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error de base de datos al listar categorías.", e);
+        }
+    }
+
+    @Override
+    public Categoria crear(String nombre) {
+        String limpio = (nombre == null) ? "" : nombre.trim();
+        if (limpio.isEmpty())
+            throw new NegocioException("El nombre no puede estar vacío.");
+        if (limpio.length() > LONGITUD_MAXIMA)
+            throw new NegocioException("Máximo " + LONGITUD_MAXIMA + " caracteres.");
+
+        try (Connection con = Database.getConnection()) {
+            if (categoriaDao.existeNombre(con, limpio))
+                throw new NegocioException("Esta categoría ya existe.");
+            return categoriaDao.insertar(con, limpio);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error de base de datos al crear la categoría.", e);
+        }
+    }
+
+    @Override
+    public void eliminar(int id) {
+        try (Connection con = Database.getConnection()) {
+            categoriaDao.porId(con, id)
+                    .orElseThrow(() -> new RecursoNoEncontradoException("Categoría no encontrada."));
+            long enUso = categoriaDao.articulosQueLaUsan(con, id);
+            if (enUso > 0)
+                throw new NegocioException("No se puede eliminar: " + enUso
+                        + (enUso == 1 ? " artículo usa" : " artículos usan") + " esta categoría.");
+            categoriaDao.eliminar(con, id);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error de base de datos al eliminar la categoría.", e);
+        }
+    }
+}

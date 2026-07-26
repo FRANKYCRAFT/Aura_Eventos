@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura Eventos</title>
+
+  <script src="js/store.js"></script>
+  <script>
+
+    (function() {
+      var s = Store.Auth.session();
+      if (s) {
+        window.location.replace(
+          s.rol === 'admin' ? 'views/dashboard-admin.html' : 'views/dashboard-cliente.html'
+        );
+      } else {
+
+        window.location.replace('login.html');
+      }
+    })();
+
+</script>
+
+  <noscript>
+    <meta http-equiv="refresh" content="0;url=login.html">
+  </noscript>
+</head>
+<body>
+
+</body>
+</html>

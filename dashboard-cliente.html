@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Agenda de Solicitudes — Aura Eventos</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-mount"></div>
+  <div class="main-content">
+
+    <div class="page-header">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+        <div>
+          <div class="page-title">Agenda de Solicitudes</div>
+          <div class="page-subtitle">Gestiona y aprueba los pedidos entrantes</div>
+        </div>
+        <div style="display:flex;gap:.625rem">
+          <button class="btn btn-ghost btn-sm" id="btn-sinrevisar" style="display:none;color:var(--warn);border-color:rgba(245,158,11,.4)"
+                  onclick="filterPending()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2"><path d="m10.29 3.86-8.6 14.9A2 2 0 0 0 3.45 22h17.1a2 2 0 0 0 1.76-2.95l-8.58-14.9a2 2 0 0 0-3.44 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span id="sinrevisar-count">0</span> sin revisar
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="exportarReporte()">Descargar Reporte</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div style="display:grid;grid-template-columns:200px 1fr;gap:1.25rem;align-items:start">
+
+        <div class="card" style="position:sticky;top:80px">
+          <div class="filters-panel-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            Filtros
+          </div>
+
+          <div class="filter-accordion open">
+            <button type="button" class="filter-accordion-head" onclick="toggleAccordion(this)">
+              <span>Estado</span>
+              <svg class="filter-accordion-arrow" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="filter-accordion-body">
+              <label class="filter-check">
+                <input type="checkbox" id="f-todas" checked onchange="applyFilters()">
+                <span class="filter-check-box"></span>
+                <span class="filter-check-label">Todas</span>
+              </label>
+              <label class="filter-check">
+                <input type="checkbox" id="f-pend" onchange="applyFilters()">
+                <span class="filter-check-box"></span>
+                <span class="filter-check-label">Pendientes</span>
+                <span class="filter-badge filter-badge-warn" id="fc-pend">0</span>
+              </label>
+              <label class="filter-check">
+                <input type="checkbox" id="f-apro" onchange="applyFilters()">
+                <span class="filter-check-box"></span>
+                <span class="filter-check-label">Aprobadas</span>
+                <span class="filter-badge filter-badge-success" id="fc-apro">0</span>
+              </label>
+              <label class="filter-check">
+                <input type="checkbox" id="f-rech" onchange="applyFilters()">
+                <span class="filter-check-box"></span>
+                <span class="filter-check-label">Rechazadas</span>
+                <span class="filter-badge filter-badge-danger" id="fc-rech">0</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="filter-accordion open">
+            <button type="button" class="filter-accordion-head" onclick="toggleAccordion(this)">
+              <span>Flete</span>
+              <svg class="filter-accordion-arrow" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="filter-accordion-body">
+              <label class="filter-check">
+                <input type="checkbox" id="f-flete-pend" onchange="applyFilters()">
+                <span class="filter-check-box"></span>
+                <span class="filter-check-label">Sin asignar</span>
+              </label>
+              <label class="filter-check">
+                <input type="checkbox" id="f-flete-ok" onchange="applyFilters()">
+                <span class="filter-check-box"></span>
+                <span class="filter-check-label">Asignado</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="filter-accordion open">
+            <button type="button" class="filter-accordion-head" onclick="toggleAccordion(this)">
+              <span>Categoría</span>
+              <svg class="filter-accordion-arrow" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="filter-accordion-body" id="cat-filters"></div>
+          </div>
+
+          <button class="btn btn-outline btn-block filter-clear-btn" onclick="resetFilters()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Limpiar filtros
+          </button>
+        </div>
+
+        <div>
+
+          <div id="bulk-bar" style="display:none;background:var(--card-bg);border:1px solid var(--card-border);
+               border-radius:var(--radius-sm);padding:.625rem 1rem;margin-bottom:.75rem;
+               align-items:center;gap:.75rem;flex-wrap:wrap;box-shadow:var(--card-shadow)">
+            <span style="font-size:.875rem;color:var(--text-secondary)" id="sel-count">0 seleccionadas</span>
+            <button class="btn btn-sm btn-primary" onclick="bulkAction('aprobar')">Aprobar seleccionadas</button>
+            <button class="btn btn-sm btn-danger"  onclick="bulkAction('rechazar')">Rechazar seleccionadas</button>
+            <button class="btn btn-sm btn-ghost"   onclick="clearSelection()" style="margin-left:auto">Cancelar</button>
+          </div>
+
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:.875rem 1.25rem;border-bottom:1px solid var(--card-border);display:flex;gap:.625rem;align-items:center;flex-wrap:wrap">
+              <div style="position:relative;flex:1;min-width:180px">
+                <span style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </span>
+                <input type="text" class="form-control" id="search-agenda"
+                       placeholder="Buscar cliente, artículo o número..." style="padding-left:2.25rem;font-size:.8125rem"
+                       oninput="applyFilters()">
+              </div>
+              <select class="form-control" id="sort-agenda" style="width:200px;font-size:.8125rem" onchange="applyFilters()">
+                <option value="recent">Más recientes primero</option>
+                <option value="date-asc">Fecha evento (ascendente)</option>
+                <option value="date-desc">Fecha evento (descendente)</option>
+                <option value="total-desc">Mayor total primero</option>
+              </select>
+            </div>
+
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width:32px">
+                      <input type="checkbox" id="check-all" onchange="toggleAll(this)"
+                             style="accent-color:var(--accent);width:15px;height:15px;cursor:pointer">
+                    </th>
+                    <th>Número</th>
+                    <th>Cliente</th>
+                    <th>Artículos</th>
+                    <th>Fecha Evento</th>
+                    <th>Dirección</th>
+                    <th>Total</th>
+                    <th>Flete</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="agenda-tbody"></tbody>
+              </table>
+            </div>
+
+            <div style="padding:.75rem 1.25rem;border-top:1px solid var(--card-border);display:flex;
+                 align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+              <span style="font-size:.8125rem;color:var(--text-muted)" id="agenda-footer"></span>
+              <div class="pagination" id="pagination"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="review-modal" style="display:none">
+  <div class="modal-box modal-box-xl">
+    <div class="modal-header">
+      <h3 class="modal-title" id="rm-title">Revisión de Solicitud</h3>
+      <button class="modal-close" onclick="closeReview()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="rm-body"></div>
+  </div>
+</div>
+
+<script src="../js/store.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/icons.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+
+Store.Auth.requireAuth('admin');
+
+const PAGE = 10;
+let filtered    = [];
+let currentPage = 1;
+let selectedIds = new Set();
+
+function updateCounts() {
+  const all = Store.Solicitudes.all();
+  document.getElementById('fc-pend').textContent = all.filter(s=>s.estado==='pendiente').length;
+  document.getElementById('fc-apro').textContent = all.filter(s=>s.estado==='aprobado').length;
+  document.getElementById('fc-rech').textContent = all.filter(s=>s.estado==='rechazado').length;
+  const pend = all.filter(s=>s.estado==='pendiente').length;
+  const btn  = document.getElementById('btn-sinrevisar');
+  document.getElementById('sinrevisar-count').textContent = pend;
+  btn.style.display = pend > 0 ? 'inline-flex' : 'none';
+}
+
+function buildCatFilters() {
+  const cats = [...new Set(Store.Articulos.all().map(a=>a.categoria))];
+  document.getElementById('cat-filters').innerHTML = cats.map(c =>
+    `<label class="filter-check">
+       <input type="checkbox" class="f-cat" value="${c}" checked onchange="applyFilters()">
+       <span class="filter-check-box"></span>
+       <span class="filter-check-label">${c}</span>
+     </label>`
+  ).join('');
+}
+
+function toggleAccordion(headBtn) {
+  headBtn.closest('.filter-accordion').classList.toggle('open');
+}
+
+function filterPending() {
+  document.getElementById('f-todas').checked = false;
+  document.getElementById('f-pend').checked  = true;
+  document.getElementById('f-apro').checked  = false;
+  document.getElementById('f-rech').checked  = false;
+  applyFilters();
+}
+
+function resetFilters() {
+  document.getElementById('f-todas').checked       = true;
+  document.getElementById('f-pend').checked        = false;
+  document.getElementById('f-apro').checked        = false;
+  document.getElementById('f-rech').checked        = false;
+  document.getElementById('f-flete-pend').checked  = false;
+  document.getElementById('f-flete-ok').checked    = false;
+  document.querySelectorAll('.f-cat').forEach(c => c.checked = true);
+  document.getElementById('search-agenda').value   = '';
+  applyFilters();
+}
+
+function applyFilters() {
+  const q      = document.getElementById('search-agenda').value.toLowerCase().trim();
+  const fTodas = document.getElementById('f-todas').checked;
+  const fPend  = document.getElementById('f-pend').checked;
+  const fApro  = document.getElementById('f-apro').checked;
+  const fRech  = document.getElementById('f-rech').checked;
+  const fpend2 = document.getElementById('f-flete-pend').checked;
+  const fok    = document.getElementById('f-flete-ok').checked;
+  const sort   = document.getElementById('sort-agenda').value;
+  const users  = Store.Usuarios.clientes();
+
+  let sols = Store.Solicitudes.all();
+
+  if (!fTodas) {
+    sols = sols.filter(s =>
+      (fPend && s.estado==='pendiente') ||
+      (fApro && s.estado==='aprobado')  ||
+      (fRech && s.estado==='rechazado')
+    );
+    if (!fPend && !fApro && !fRech) sols = [];
+  }
+  if (fpend2) sols = sols.filter(s => s.flete == null);
+  if (fok)    sols = sols.filter(s => s.flete != null);
+  if (q) {
+    sols = sols.filter(s => {
+      const u    = users.find(u=>u.id===s.clienteId);
+      const name = u ? `${u.nombre} ${u.apellidos||''}`.toLowerCase() : '';
+      const arts = s.articulos.map(i=>Store.Articulos.byId(i.artId)?.nombre||'').join(' ').toLowerCase();
+      return s.id.toLowerCase().includes(q) || name.includes(q) || arts.includes(q);
+    });
+  }
+
+  if (sort==='recent')      sols.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  else if (sort==='date-asc')   sols.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  else if (sort==='date-desc')  sols.sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  else if (sort==='total-desc') sols.sort((a,b)=>b.total-a.total);
+
+  filtered    = sols;
+  currentPage = 1;
+  renderTable();
+  updateCounts();
+}
+
+function renderTable() {
+  const users = Store.Usuarios.clientes();
+  const start = (currentPage-1)*PAGE;
+  const page  = filtered.slice(start, start+PAGE);
+
+  const pendCount = filtered.filter(s=>s.estado==='pendiente').length;
+  document.getElementById('agenda-footer').textContent =
+    `Mostrando ${filtered.length} de ${Store.Solicitudes.all().length} solicitudes${pendCount>0?' · '+pendCount+' pendientes':''}`;
+
+  if (page.length === 0) {
+    document.getElementById('agenda-tbody').innerHTML = `
+      <tr><td colspan="9">
+        <div class="empty-state" style="padding:2.5rem">
+          <h3>Sin resultados</h3>
+          <p>Ajusta los filtros para ver solicitudes.</p>
+        </div>
+      </td></tr>`;
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  document.getElementById('agenda-tbody').innerHTML = page.map(s => {
+    const u        = users.find(u=>u.id===s.clienteId);
+    const uName    = u ? `${u.nombre} ${u.apellidos||''}` : 'Cliente';
+    const initials = u ? (u.nombre[0]+(u.apellidos?u.apellidos[0]:'')).toUpperCase() : 'U';
+    const arts     = s.articulos.map(i=>{
+      const a = Store.Articulos.byId(i.artId);
+      return a ? `${a.nombre}${i.cantidad>1?' x'+i.cantidad:''}` : '?';
+    }).join(', ');
+    const artsShort = arts.length>42 ? arts.slice(0,42)+'…' : arts;
+    const checked   = selectedIds.has(s.id);
+
+    return `<tr style="cursor:pointer" onclick="openReview('${s.id}')">
+      <td onclick="event.stopPropagation()">
+        <input type="checkbox" ${checked?'checked':''} onchange="toggleCheck('${s.id}',this)"
+               style="accent-color:var(--accent);width:15px;height:15px;cursor:pointer">
+      </td>
+      <td><span style="color:var(--accent);font-weight:700;font-size:.8125rem">#${s.id}</span></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <div class="avatar" style="width:26px;height:26px;font-size:9px;flex-shrink:0">${initials}</div>
+          <div>
+            <div style="font-size:.8125rem;font-weight:600;color:var(--text-primary)">${uName}</div>
+            <div style="font-size:.72rem;color:var(--text-muted)">${u?.email||''}</div>
+          </div>
+        </div>
+      </td>
+      <td style="font-size:.8125rem;color:var(--text-secondary);max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${arts}">${artsShort}</td>
+      <td style="font-size:.8125rem;white-space:nowrap;color:var(--text-primary)">${UI.fmt.dateRange(s.fecha,s.fechaFin)}</td>
+      <td style="font-size:.8125rem;color:var(--text-muted);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.direccion||'—'}</td>
+      <td style="font-weight:700;color:var(--text-primary)">${UI.fmt.money(s.total)}</td>
+      <td style="font-size:.8125rem">${s.flete!=null
+        ? `<span style="font-weight:600;color:var(--text-primary)">${UI.fmt.money(s.flete)}</span>`
+        : `<span style="color:var(--warn);font-weight:500">Sin asignar</span>`}</td>
+      <td>${UI.statusBadge(s.estado)}</td>
+    </tr>`;
+  }).join('');
+
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = Math.ceil(filtered.length/PAGE);
+  if (total<=1) { document.getElementById('pagination').innerHTML=''; return; }
+  let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>&#8249;</button>`;
+  for (let i=1;i<=total;i++) html+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  html+=`<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===total?'disabled':''}>&#8250;</button>`;
+  document.getElementById('pagination').innerHTML = html;
+}
+function goPage(p) {
+  const total=Math.ceil(filtered.length/PAGE);
+  if(p<1||p>total) return;
+  currentPage=p; renderTable();
+}
+
+function toggleCheck(id,el) {
+  el.checked ? selectedIds.add(id) : selectedIds.delete(id);
+  updateBulkBar();
+}
+function toggleAll(el) {
+  filtered.slice((currentPage-1)*PAGE,currentPage*PAGE).forEach(s=> el.checked?selectedIds.add(s.id):selectedIds.delete(s.id));
+  renderTable(); updateBulkBar();
+}
+function clearSelection() { selectedIds.clear(); renderTable(); updateBulkBar(); }
+function updateBulkBar() {
+  const bar=document.getElementById('bulk-bar');
+  bar.style.display = selectedIds.size>0?'flex':'none';
+  document.getElementById('sel-count').textContent = `${selectedIds.size} seleccionada${selectedIds.size!==1?'s':''}`;
+}
+
+function bulkAction(action) {
+  const ids=[...selectedIds].filter(id=>Store.Solicitudes.byId(id)?.estado==='pendiente');
+  if (!ids.length) { UI.toast('No hay solicitudes pendientes seleccionadas.','warning'); return; }
+  UI.modal({
+    title: action==='aprobar'?`Aprobar ${ids.length} solicitudes`:`Rechazar ${ids.length} solicitudes`,
+    body:  `<p style="color:var(--text-secondary)">¿Confirmas ${action==='aprobar'?'aprobar':'rechazar'} <strong>${ids.length}</strong> solicitudes pendientes?</p>`,
+    confirmLabel: action==='aprobar'?'Aprobar todas':'Rechazar todas',
+    confirmClass: action==='aprobar'?'btn-primary':'btn-danger',
+    onConfirm: async () => {
+      let ok = 0, fail = 0;
+      for (const id of ids) {
+        const r = action==='aprobar'
+          ? await Store.Solicitudes.aprobar(id,0)
+          : await Store.Solicitudes.rechazar(id,'Rechazo masivo.');
+        r.error ? fail++ : ok++;
+      }
+      selectedIds.clear();
+      UI.toast(`${ok} solicitudes ${action==='aprobar'?'aprobadas':'rechazadas'}${fail?` · ${fail} con error`:''}.`,action==='aprobar'?'success':'warning');
+      renderSidebar('agenda'); applyFilters();
+    }
+  });
+}
+
+let reviewingId = null;
+
+function openReview(id) {
+  reviewingId = id;
+  const s     = Store.Solicitudes.byId(id); if(!s) return;
+  const users = Store.Usuarios.clientes();
+  const u     = users.find(u=>u.id===s.clienteId);
+  const uName = u?`${u.nombre} ${u.apellidos||''}`:'Cliente';
+  const initials=(u?(u.nombre[0]+(u.apellidos?u.apellidos[0]:'')).toUpperCase():'U');
+
+  const artRows = s.articulos.map(i=>{
+    const a  = Store.Articulos.byId(i.artId);
+    const ok = a && a.stockDisponible>=i.cantidad;
+    const imgEl = a&&a.imagen
+      ? `<img src="${a.imagen}" style="width:38px;height:38px;border-radius:6px;object-fit:cover;border:1px solid var(--card-border)">`
+      : `<div style="width:38px;height:38px;border-radius:6px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;font-size:1.2rem;border:1px solid var(--card-border);flex-shrink:0">${UI.catIcon(a?.categoria||'')}</div>`;
+    return `
+      <div style="display:flex;align-items:center;gap:.75rem;background:#F8FAFC;padding:.625rem;border-radius:6px;margin-bottom:.4rem;border:1px solid var(--card-border)">
+        ${imgEl}
+        <div style="flex:1">
+          <div style="font-size:.875rem;font-weight:600;color:var(--text-primary)">${a?.nombre||'?'}</div>
+          <div style="font-size:.78rem;color:var(--text-muted)">${a?.categoria||''} · x${i.cantidad}</div>
+        </div>
+        <div style="font-weight:700;color:var(--accent);flex-shrink:0">${UI.fmt.money((a?.precio||0)*i.cantidad)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem;font-size:.8rem;margin-bottom:.3rem;padding-left:.25rem">
+        <span style="color:${ok?'var(--accent)':'var(--warn)'}">${ok?'&#10003;':'!'}</span>
+        <span style="color:var(--text-secondary)">${a?.nombre||'?'}</span>
+        <span style="margin-left:auto;font-weight:600;color:${ok?'var(--accent)':'var(--warn)'}">${a?.stockDisponible||0} disponibles</span>
+      </div>`;
+  }).join('');
+
+  const fleteInit = s.flete!=null?s.flete:'';
+
+  document.getElementById('rm-title').textContent = `Revisión · #${s.id}`;
+  document.getElementById('rm-body').innerHTML = `
+    <div class="review-layout">
+      <div>
+        <div class="review-section-title">Datos del Cliente</div>
+        <div style="display:flex;align-items:center;gap:.625rem;margin-bottom:.875rem;background:#F8FAFC;padding:.75rem;border-radius:6px;border:1px solid var(--card-border)">
+          <div class="avatar" style="width:36px;height:36px;font-size:12px">${initials}</div>
+          <div>
+            <div style="font-weight:700;color:var(--text-primary)">${uName}</div>
+            <div style="font-size:.8125rem;color:var(--text-muted)">${u?.email||''}</div>
+          </div>
+        </div>
+        <div class="review-field"><strong>Teléfono</strong><span>${u?.telefono||'—'}</span></div>
+        <div class="review-field"><strong>Fecha del evento</strong><span>${UI.fmt.dateRange(s.fecha,s.fechaFin)}</span></div>
+        <div class="review-field"><strong>Dirección de entrega</strong><span>${s.direccion||'—'}</span></div>
+        ${s.notas?`<div class="review-field"><strong>Notas del cliente</strong><span>${s.notas}</span></div>`:''}
+        <div class="divider"></div>
+        <div class="review-section-title">Artículos Solicitados</div>
+        ${artRows}
+      </div>
+
+      <div>
+        <div class="review-section-title">Asignar Costo de Flete</div>
+        <div class="alert alert-warn" style="margin-bottom:.875rem">
+          <span class="alert-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m10.29 3.86-8.6 14.9A2 2 0 0 0 3.45 22h17.1a2 2 0 0 0 1.76-2.95l-8.58-14.9a2 2 0 0 0-3.44 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </span>
+          <div class="alert-content"><strong>Obligatorio antes de aprobar</strong></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+          <span style="font-size:1.25rem;color:var(--text-muted);font-weight:700">$</span>
+          <input type="number" class="form-control" id="flete-input" value="${fleteInit}"
+                 min="0" placeholder="450" style="font-size:1.125rem;font-weight:700;max-width:130px;text-align:center"
+                 oninput="updateFinancials('${s.id}')">
+          <span style="color:var(--text-muted);font-size:.875rem">MXN</span>
+        </div>
+        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem">Este costo aparecerá en la nota de remisión del cliente.</p>
+
+        <div class="review-section-title">Resumen Financiero</div>
+        <div class="financial-summary">
+          <div class="fin-row"><span>Subtotal artículos</span><span>${UI.fmt.money(s.subtotal)}</span></div>
+          <div class="fin-row"><span>IVA (16%)</span><span>${UI.fmt.money(s.iva)}</span></div>
+          <div class="fin-row"><span>Flete asignado</span><span id="fin-flete">${fleteInit!==''?UI.fmt.money(fleteInit):'—'}</span></div>
+          <div class="fin-total"><span>Total a cobrar</span><span id="fin-total">${UI.fmt.money(s.subtotal+s.iva+(Number(fleteInit)||0))} MXN</span></div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="review-section-title">Motivo de Rechazo <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">(solo si rechaza)</span></div>
+        <textarea class="form-control" id="rechazo-motivo" rows="3"
+                  placeholder="Ej: Fecha ocupada, inventario insuficiente, fuera de área...">${s.motivoRechazo||''}</textarea>
+
+        <div class="divider"></div>
+        ${s.estado !== 'pendiente'
+          ? `<div class="alert ${s.estado==='aprobado'?'alert-success':'alert-error'}">
+               <span class="alert-icon">${s.estado==='aprobado'?'&#10003;':'&#10007;'}</span>
+               <div class="alert-content">Esta solicitud ya fue <strong>${s.estado}</strong>.${s.motivoRechazo?`<br><em>${s.motivoRechazo}</em>`:''}</div>
+             </div>`
+          : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+               <button class="btn btn-primary" onclick="aprobar('${s.id}')">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                 Aprobar
+               </button>
+               <button class="btn btn-danger" onclick="rechazar('${s.id}')">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                 Rechazar
+               </button>
+             </div>
+             <p style="font-size:.72rem;color:var(--text-muted);text-align:center;margin-top:.5rem;line-height:1.5">
+               Al aprobar: stock bloqueado + nota de remisión generada automáticamente.
+             </p>`}
+      </div>
+    </div>`;
+
+  const m = document.getElementById('review-modal');
+  m.style.display='flex';
+  requestAnimationFrame(()=>m.classList.add('active'));
+  m.onclick = e => { if(e.target===m) closeReview(); };
+}
+
+function updateFinancials(id) {
+  const s=Store.Solicitudes.byId(id); if(!s) return;
+  const flete=Number(document.getElementById('flete-input').value)||0;
+  document.getElementById('fin-flete').textContent = UI.fmt.money(flete);
+  document.getElementById('fin-total').textContent = UI.fmt.money(s.subtotal+s.iva+flete)+' MXN';
+}
+
+function aprobar(id) {
+  const fleteVal=document.getElementById('flete-input').value.trim();
+  if (fleteVal==='') { UI.toast('Ingresa el costo de flete antes de aprobar.','warning'); document.getElementById('flete-input').focus(); return; }
+  const flete=Number(fleteVal);
+  UI.modal({
+    title:'Aprobar Solicitud',
+    body:`<p style="color:var(--text-secondary)">¿Confirmas aprobar la solicitud <strong>#${id}</strong> con flete de <strong>${UI.fmt.money(flete)} MXN</strong>?</p>
+          <p style="margin-top:.5rem;font-size:.875rem;color:var(--text-muted)">Se bloqueará el inventario y se generará la nota de remisión automáticamente.</p>`,
+    confirmLabel:'Sí, Aprobar', confirmClass:'btn-primary',
+    onConfirm: async ()=>{
+      const r = await Store.Solicitudes.aprobar(id,flete);
+      if (r.error) { UI.toast(r.error,'error'); return; }
+      closeReview();
+      UI.toast(`Solicitud #${id} aprobada. Stock bloqueado.`,'success',5000);
+      setTimeout(()=>UI.toast('Nota de remisión generada y disponible para el cliente.','info',5000),1200);
+      renderSidebar('agenda'); applyFilters();
+    }
+  });
+}
+
+function rechazar(id) {
+  const motivo=document.getElementById('rechazo-motivo').value.trim();
+  UI.modal({
+    title:'Rechazar Solicitud',
+    body:`<p style="color:var(--text-secondary)">¿Confirmas rechazar la solicitud <strong>#${id}</strong>?</p>
+          <p style="margin-top:.5rem;font-size:.875rem;color:var(--text-muted)">Se liberará el inventario y se notificará al cliente.</p>`,
+    confirmLabel:'Sí, Rechazar', confirmClass:'btn-danger',
+    onConfirm: async ()=>{
+      const r = await Store.Solicitudes.rechazar(id,motivo);
+      if (r.error) { UI.toast(r.error,'error'); return; }
+      closeReview();
+      UI.toast(`Solicitud #${id} rechazada. Inventario liberado.`,'warning');
+      renderSidebar('agenda'); applyFilters();
+    }
+  });
+}
+
+function closeReview() {
+  const m=document.getElementById('review-modal');
+  m.classList.remove('active');
+  setTimeout(()=>{ m.style.display='none'; reviewingId=null; },200);
+}
+
+function exportarReporte() {
+  const users=Store.Usuarios.clientes();
+  const rows=[['Número','Cliente','Fecha Evento','Fecha Fin','Total','Flete','Estado','Dirección']];
+  filtered.forEach(s=>{
+    const u=users.find(u=>u.id===s.clienteId);
+    rows.push([s.id,u?`${u.nombre} ${u.apellidos||''}`:'?',s.fecha,s.fechaFin||s.fecha,s.total,s.flete??'',s.estado,s.direccion||'']);
+  });
+  const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download=`reporte-solicitudes-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  UI.toast('Reporte descargado correctamente.','success');
+}
+
+(async () => {
+  try {
+    await API.init(['articulos', 'solicitudes', 'usuarios', 'categorias']);
+  } catch (err) { API.fatal(err); return; }
+  renderSidebar('agenda');
+  buildCatFilters();
+  applyFilters();
+})();
+
+</script>
+</body>
+</html>

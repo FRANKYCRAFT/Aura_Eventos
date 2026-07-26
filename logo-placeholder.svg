@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clientes — Aura Eventos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-mount"></div>
+  <div class="main-content">
+    <div class="page-header">
+      <div class="page-title">Clientes</div>
+      <div class="page-subtitle">Directorio de clientes registrados</div>
+    </div>
+    <div class="page-body">
+      <div style="position:relative;max-width:320px;margin-bottom:1.25rem">
+        <span style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+        <input type="text" class="form-control" id="search-cli" placeholder="Buscar cliente..." style="padding-left:2.25rem" oninput="renderClientes()">
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Cliente</th><th>Email</th><th>Teléfono</th><th>Solicitudes</th><th>Total Invertido</th><th>Último Evento</th><th style="text-align:center">Acciones</th></tr></thead>
+            <tbody id="cli-tbody"></tbody>
+          </table>
+        </div>
+        <div style="padding:.75rem 1.25rem;border-top:1px solid var(--border);font-size:.8125rem;color:var(--text3)" id="cli-footer"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="../js/store.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/icons.js"></script>
+  <script src="../js/layout.js"></script>
+<script>
+
+Store.Auth.requireAuth('admin');
+
+function renderClientes() {
+  const q     = document.getElementById('search-cli').value.toLowerCase().trim();
+  const users = Store.Usuarios.clientes();
+  const sols  = Store.Solicitudes.all();
+  let clientes= users;
+  if (q) clientes = clientes.filter(u => `${u.nombre} ${u.apellidos||''} ${u.email}`.toLowerCase().includes(q));
+
+  document.getElementById('cli-footer').textContent = `${clientes.length} cliente${clientes.length!==1?'s':''}`;
+
+  document.getElementById('cli-tbody').innerHTML = clientes.length===0
+    ? `<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><h3>Sin clientes</h3></div></td></tr>`
+    : clientes.map(u => {
+        const mySols = sols.filter(s=>s.clienteId===u.id);
+        const total  = mySols.filter(s=>s.estado==='aprobado').reduce((t,s)=>t+s.total,0);
+        const ultimo = mySols.sort((a,b)=>b.createdAt.localeCompare(a.createdAt))[0];
+        const initials=(u.nombre[0]+(u.apellidos?u.apellidos[0]:'')).toUpperCase();
+        return `<tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:.625rem">
+              <div class="avatar" style="width:32px;height:32px;font-size:11px">${initials}</div>
+              <div style="font-size:.875rem;font-weight:600">${u.nombre} ${u.apellidos||''}</div>
+            </div>
+          </td>
+          <td style="font-size:.875rem;color:var(--text2)">${u.email}</td>
+          <td style="font-size:.875rem;color:var(--text3)">${u.telefono||'—'}</td>
+          <td style="text-align:center;font-weight:600">${mySols.length}</td>
+          <td style="font-weight:700">${UI.fmt.money(total)}</td>
+          <td style="font-size:.8125rem;color:var(--text3)">${ultimo?UI.fmt.date(ultimo.createdAt):'—'}</td>
+          <td style="text-align:center">
+            <button class="btn btn-ghost btn-sm" title="Restablecer contraseña"
+                    onclick="resetPasswordAdmin('${u.id}')">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Restablecer
+            </button>
+          </td>
+        </tr>`;
+      }).join('');
+}
+
+function resetPasswordAdmin(userId) {
+  const u = Store.Usuarios.byId(userId);
+  if (!u) return;
+  UI.modal({
+    title: 'Restablecer contraseña',
+    body: `<p style="color:var(--text-secondary)">Se generará una <strong>contraseña temporal</strong> para
+           <strong>${u.nombre} ${u.apellidos||''}</strong> (${u.email}).</p>
+           <p style="margin-top:.5rem;font-size:.875rem;color:var(--text-muted)">La contraseña actual dejará de funcionar de inmediato. Comparte la nueva contraseña con el cliente por un canal seguro.</p>`,
+    confirmLabel: 'Generar contraseña',
+    confirmClass: 'btn-primary',
+    onConfirm: async () => {
+      const result = await Store.Auth.adminResetPassword(userId);
+      if (result.error) { UI.toast(result.error, 'error'); return; }
+      showTempPassword(u, result.tempPassword);
+    }
+  });
+}
+
+function showTempPassword(u, temp) {
+  UI.modal({
+    title: 'Contraseña temporal generada',
+    body: `
+      <p style="color:var(--text-secondary);margin-bottom:.875rem">Nueva contraseña para <strong>${u.nombre} ${u.apellidos||''}</strong>:</p>
+      <div style="display:flex;align-items:center;gap:.5rem;background:#F8FAFC;border:1.5px dashed var(--accent);
+           border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:.875rem">
+        <code id="temp-pass-value" style="flex:1;font-size:1.05rem;font-weight:800;letter-spacing:.06em;color:var(--text-primary)">${temp}</code>
+        <button class="btn btn-outline btn-sm" onclick="copyTempPass()">Copiar</button>
+      </div>
+      <p style="font-size:.8125rem;color:var(--text-muted)">Esta contraseña solo se muestra una vez. El cliente podrá cambiarla desde su perfil después de iniciar sesión.</p>`,
+    confirmLabel: 'Entendido',
+    cancelLabel: 'Cerrar',
+    confirmClass: 'btn-primary',
+    onConfirm: () => {}
+  });
+}
+
+function copyTempPass() {
+  const val = document.getElementById('temp-pass-value').textContent;
+  navigator.clipboard.writeText(val)
+    .then(() => UI.toast('Contraseña copiada al portapapeles.', 'success'))
+    .catch(() => UI.toast('No se pudo copiar automáticamente. Selecciona y copia manualmente.', 'warning'));
+}
+
+(async () => {
+  try {
+    await API.init(['solicitudes', 'usuarios']);
+  } catch (err) { API.fatal(err); return; }
+  renderSidebar('clientes-admin');
+  renderClientes();
+})();
+
+</script>
+</body>
+</html>

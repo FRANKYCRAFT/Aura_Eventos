@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reservación — Aura Eventos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+<div id="topnav-mount"></div>
+
+<main style="padding:1.25rem 2rem 2rem;max-width:1200px;margin:0 auto">
+
+  <div style="display:flex;align-items:center;gap:.5rem;font-size:.875rem;color:var(--text3);margin-bottom:1.5rem;flex-wrap:wrap">
+    <a href="catalogo.html" style="color:var(--text3)">Catálogo</a>
+    <span>›</span>
+    <span style="color:var(--text)">Reservación</span>
+    <span style="margin-left:auto;color:var(--accent);font-size:.875rem;font-weight:600">● Paso 3 de 3</span>
+  </div>
+
+  <div id="empty-cart-guard" style="display:none">
+    <div class="empty-state" style="padding:4rem 2rem">
+      <div class="empty-state-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>
+      <h3>Tu carrito está vacío</h3>
+      <p>Agrega artículos desde el catálogo antes de continuar.</p>
+      <button class="btn btn-primary" style="margin-top:1rem" onclick="window.location.href='catalogo.html'">← Ir al catálogo</button>
+    </div>
+  </div>
+
+  <div id="booking-content">
+
+    <div id="page-alert" style="margin-bottom:1rem"></div>
+
+    <div class="booking-layout">
+
+      <div>
+        <div class="booking-panel">
+          <div style="font-size:.72rem;font-weight:700;letter-spacing:.1em;color:var(--text4);text-transform:uppercase">Paso 3 · Selección de fecha</div>
+          <div style="font-size:1.4rem;font-weight:800;margin:.3rem 0 .2rem">¿Cuándo es tu evento?</div>
+          <p style="font-size:.875rem;color:var(--text3);margin-bottom:1.25rem">Selecciona la fecha de entrega y recogida. Las fechas en gris ya están ocupadas.</p>
+
+          <div class="calendar-wrap">
+            <div class="cal-header">
+              <button class="cal-nav" id="cal-prev">‹</button>
+              <span class="cal-month" id="cal-month"></span>
+              <button class="cal-nav" id="cal-next">›</button>
+            </div>
+            <div class="cal-grid">
+              <div class="cal-dow">DOM</div><div class="cal-dow">LUN</div><div class="cal-dow">MAR</div>
+              <div class="cal-dow">MIÉ</div><div class="cal-dow">JUE</div><div class="cal-dow">VIE</div><div class="cal-dow">SÁB</div>
+            </div>
+            <div class="cal-grid" id="cal-days"></div>
+            <div class="cal-legend">
+              <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--accent)"></div>Seleccionado</div>
+              <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--accent-dim)"></div>Rango</div>
+              <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--border)"></div>No disponible</div>
+              <div class="cal-legend-item"><div class="cal-legend-dot" style="background:transparent;border:1px solid var(--border-mid)"></div>Hoy</div>
+            </div>
+          </div>
+
+          <div id="date-banner" style="display:none;margin-top:1rem" class="alert alert-success">
+            <span class="alert-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+            <div class="alert-content"><div id="date-banner-text" style="font-weight:600"></div></div>
+          </div>
+
+          <div style="margin-top:1.25rem;border-top:1px solid var(--border);padding-top:1.25rem">
+            <div style="font-size:.875rem;font-weight:700;color:var(--text-secondary);margin-bottom:.875rem;display:flex;align-items:center;gap:.35rem"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Datos del Evento</div>
+            <div class="form-row" style="margin-bottom:.875rem">
+              <div class="form-group">
+                <label class="form-label">Nombre completo</label>
+                <input type="text" class="form-control" id="f-nombre" placeholder="Tu nombre completo">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Teléfono</label>
+                <input type="tel" class="form-control" id="f-telefono" placeholder="55 1234 5678">
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom:.875rem">
+              <label class="form-label">Dirección completa del evento *</label>
+              <input type="text" class="form-control" id="f-direccion" placeholder="Av. Presidente Masaryk 134, Polanco, CDMX">
+              <span class="form-error" id="err-dir"></span>
+            </div>
+            <div class="form-group" style="margin-bottom:.875rem">
+              <label class="form-label">Notas adicionales (opcional)</label>
+              <textarea class="form-control" id="f-notas" rows="2" placeholder="Ej: 2do piso, portón negro. Tiene rampa de acceso."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tipo de lugar</label>
+              <select class="form-control" id="f-tipo" style="max-width:200px">
+                <option>Interior</option>
+                <option>Exterior</option>
+                <option>Mixto</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="booking-sidebar">
+        <div class="booking-sidebar-title">Resumen de Solicitud</div>
+        <p style="font-size:.8125rem;color:var(--text3);margin-bottom:1rem">Confirma los artículos antes de enviar</p>
+        <div id="summary-items"></div>
+        <div class="summary-totals">
+          <div class="summary-row"><span>Subtotal</span><span id="s-subtotal"></span></div>
+          <div class="summary-row"><span>IVA (16%)</span><span id="s-iva"></span></div>
+          <div class="summary-row"><span>Flete</span><span style="color:var(--warn)">Por asignar</span></div>
+          <div class="summary-total"><span>Total estimado</span><span id="s-total"></span></div>
+        </div>
+        <div id="date-badge" class="summary-date-badge" style="display:none">
+          <div class="summary-date-label">Fecha seleccionada</div>
+          <div class="summary-date-val" id="s-date-val"></div>
+          <div style="font-size:.8125rem;color:var(--text3);margin-top:.2rem" id="s-days-val"></div>
+        </div>
+        <button class="btn btn-primary btn-block btn-lg" style="margin-top:1.25rem" id="send-btn" onclick="enviarSolicitud()">
+          Enviar Solicitud
+        </button>
+        <p style="font-size:.75rem;color:var(--text4);text-align:center;margin-top:.625rem;line-height:1.5">
+          Al enviar, un agente revisará tu solicitud y te notificará en &lt;24 hrs.
+        </p>
+        <button class="btn btn-ghost btn-block" style="margin-top:.5rem" onclick="window.location.href='catalogo.html'">
+          ← Seguir comprando
+        </button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="success-modal" style="
+  display:none;position:fixed;inset:0;z-index:9000;
+  background:rgba(15,23,42,.72);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;padding:1rem">
+  <div style="
+    background:#FFFFFF;border-radius:16px;width:100%;max-width:460px;
+    box-shadow:0 24px 64px rgba(15,23,42,.22);overflow:hidden;
+    animation:fadeInScale .22s ease">
+
+    <div style="height:5px;background:linear-gradient(90deg,#10B981,#059669)"></div>
+
+    <div style="padding:2.25rem 2.25rem 2rem;text-align:center">
+
+      <div style="
+        width:72px;height:72px;border-radius:50%;
+        background:#D1FAE5;border:3px solid #10B981;
+        display:flex;align-items:center;justify-content:center;
+        margin:0 auto 1.375rem">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
+             fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+
+      <h2 style="font-size:1.5rem;font-weight:800;color:#0F172A;margin-bottom:.5rem">
+        ¡Solicitud Enviada!
+      </h2>
+      <p style="font-size:.9375rem;color:#475569;line-height:1.6;margin-bottom:1.25rem;max-width:340px;margin-left:auto;margin-right:auto">
+        Tu solicitud está en revisión. Un agente de Aura Eventos te contactará en menos de 24 horas.
+      </p>
+
+      <div style="
+        display:inline-flex;align-items:center;gap:.5rem;
+        background:#FEF3C7;border:1px solid #FDE68A;border-radius:99px;
+        padding:.35rem 1rem;font-size:.8125rem;color:#92400E;font-weight:700;
+        margin-bottom:1.5rem">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        PENDIENTE DE APROBACIÓN
+      </div>
+
+      <div style="
+        background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;
+        padding:1rem 1.25rem;text-align:left;margin-bottom:1.5rem" id="success-details"></div>
+
+      <button class="btn btn-primary btn-block btn-lg"
+              style="margin-bottom:.625rem"
+              onclick="window.location.href='dashboard-cliente.html'">
+        Ir a mi Dashboard
+      </button>
+      <button onclick="window.location.href='catalogo.html'"
+              style="width:100%;padding:.65rem;background:none;border:1.5px solid #E2E8F0;
+                     border-radius:7px;color:#475569;font-size:.9rem;font-weight:600;
+                     cursor:pointer;transition:.15s ease;font-family:inherit"
+              onmouseover="this.style.background='#F1F5F9'"
+              onmouseout="this.style.background='none'">
+        Explorar más artículos
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/store.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/icons.js"></script>
+  <script src="../js/layout.js"></script>
+<script>
+
+const session = Store.Auth.requireAuth('cliente');
+if (!session) throw new Error('No session');
+
+if (Store.Carrito.count() === 0) {
+  document.getElementById('empty-cart-guard').style.display = 'block';
+  document.getElementById('booking-content').style.display  = 'none';
+}
+
+document.getElementById('f-nombre').value   = `${session.nombre} ${session.apellidos||''}`.trim();
+document.getElementById('f-telefono').value = session.telefono || '';
+
+function renderSummary() {
+  const items = Store.Carrito.get();
+  document.getElementById('summary-items').innerHTML = items.map(i => {
+    const a = Store.Articulos.byId(i.artId);
+    return `<div class="summary-item">
+      <div class="summary-item-img">
+        ${(()=>{ const a=Store.Articulos.byId(i.artId); return a&&a.imagen ? `<img src="${a.imagen}" alt="${i.nombre}">` : UI.catIcon(i.categoria); })()}
+      </div>
+      <div class="summary-item-info">
+        <div class="summary-item-name">${i.nombre}</div>
+        <div class="summary-item-meta">x${i.cantidad} · ${i.categoria}</div>
+      </div>
+      <div class="summary-item-price">${UI.fmt.money(i.precioSnapshot * i.cantidad)}</div>
+    </div>`;
+  }).join('');
+  const sub = Store.Carrito.subtotal();
+  const iva = Math.round(sub * 0.16);
+  document.getElementById('s-subtotal').textContent = UI.fmt.money(sub) + ' MXN';
+  document.getElementById('s-iva').textContent      = UI.fmt.money(iva) + ' MXN';
+  document.getElementById('s-total').textContent    = UI.fmt.money(sub + iva) + ' MXN';
+}
+
+const today = new Date();
+let calYear = today.getFullYear(), calMonth = today.getMonth();
+let selStart = null, selEnd = null;
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const todayStr = today.toISOString().split('T')[0];
+
+function occupiedDates() {
+  const occupied = new Set();
+  const carrito  = Store.Carrito.get();
+  Store.Solicitudes.all().filter(s => s.estado === 'aprobado').forEach(s => {
+    const start = new Date(s.fecha + 'T00:00:00');
+    const end   = new Date((s.fechaFin||s.fecha) + 'T00:00:00');
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
+      const ds = d.toISOString().split('T')[0];
+      for (const ci of carrito) {
+        const item = s.articulos.find(i => i.artId === ci.artId);
+        const art  = Store.Articulos.byId(ci.artId);
+        if (item && art && item.cantidad >= art.stockTotal) occupied.add(ds);
+      }
+    }
+  });
+  return occupied;
+}
+
+function renderCalendar() {
+  const occ = occupiedDates();
+  document.getElementById('cal-month').textContent = `${MONTHS[calMonth]} ${calYear}`;
+  const firstDay     = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth  = new Date(calYear, calMonth+1, 0).getDate();
+  let html = '';
+  for (let i = 0; i < firstDay; i++) html += '<div class="cal-day empty"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds  = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const past= ds < todayStr;
+    const occ2= occ.has(ds);
+    const disabled = past || occ2;
+    const isSel = selStart === ds || selEnd === ds;
+    const inRng = selStart && selEnd && ds > selStart && ds < selEnd;
+    let cls = 'cal-day';
+    if (disabled) cls += ' disabled';
+    else if (isSel) cls += ' selected';
+    else if (inRng) cls += ' in-range';
+    if (ds === todayStr) cls += ' today';
+    const click = disabled ? '' : `onclick="selectDate('${ds}')"`;
+    html += `<div class="${cls}" ${click} title="${occ2?'Ocupado':''}">${d}</div>`;
+  }
+  document.getElementById('cal-days').innerHTML = html;
+}
+
+function selectDate(ds) {
+  if (!selStart || (selStart && selEnd) || ds < selStart) {
+    selStart = ds; selEnd = null;
+  } else if (ds === selStart) {
+    selStart = null; selEnd = null;
+  } else {
+    selEnd = ds;
+  }
+  renderCalendar();
+  updateDateUI();
+}
+
+function updateDateUI() {
+  const banner = document.getElementById('date-banner');
+  const badge  = document.getElementById('date-badge');
+  if (selStart) {
+    banner.style.display = 'flex';
+    badge.style.display  = 'block';
+    if (selEnd) {
+      document.getElementById('date-banner-text').textContent =
+        `Entrega: ${UI.fmt.date(selStart)} · Recogida: ${UI.fmt.date(selEnd)} (${UI.fmt.days(selStart,selEnd)} días)`;
+      document.getElementById('s-date-val').textContent = UI.fmt.dateRange(selStart, selEnd);
+      document.getElementById('s-days-val').textContent =
+        `${UI.fmt.days(selStart,selEnd)} días · Evento: ${new Date(selStart+'T00:00:00').toLocaleDateString('es-MX',{weekday:'long'})}`;
+    } else {
+      document.getElementById('date-banner-text').textContent =
+        `Fecha seleccionada: ${UI.fmt.date(selStart)} — Puedes elegir fecha de recogida`;
+      document.getElementById('s-date-val').textContent = UI.fmt.date(selStart);
+      document.getElementById('s-days-val').textContent = '1 día de renta';
+    }
+  } else {
+    banner.style.display = 'none';
+    badge.style.display  = 'none';
+  }
+}
+
+document.getElementById('cal-prev').addEventListener('click', () => { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); });
+document.getElementById('cal-next').addEventListener('click', () => { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); });
+
+async function enviarSolicitud() {
+
+  document.getElementById('page-alert').innerHTML = '';
+  document.getElementById('err-dir').textContent  = '';
+  document.getElementById('f-direccion').classList.remove('error');
+
+  if (!selStart) {
+    document.getElementById('page-alert').innerHTML = `
+      <div class="alert alert-error">
+        <span class="alert-icon">⊘</span>
+        <div class="alert-content"><div class="alert-title">Selecciona una fecha</div>Elige la fecha de tu evento en el calendario antes de continuar.</div>
+      </div>`;
+    document.querySelector('.calendar-wrap').scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+
+  const direccion = document.getElementById('f-direccion').value.trim();
+  if (!direccion) {
+    document.getElementById('err-dir').textContent = 'La dirección del evento es requerida.';
+    document.getElementById('f-direccion').classList.add('error');
+    document.getElementById('f-direccion').focus();
+    return;
+  }
+
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  const result = await Store.Solicitudes.crear({
+    clienteId: session.id,
+    fecha:     selStart,
+    fechaFin:  selEnd || selStart,
+    articulos: Store.Carrito.get().map(i => ({ artId: i.artId, cantidad: i.cantidad })),
+    direccion,
+    notas:     document.getElementById('f-notas').value.trim()
+  });
+
+    if (result.error) {
+      document.getElementById('page-alert').innerHTML = `
+        <div class="alert alert-error">
+          <span class="alert-icon">⊘</span>
+          <div class="alert-content"><div class="alert-title">Fecha no disponible (Overbooking)</div>${result.error}</div>
+        </div>`;
+      document.getElementById('page-alert').scrollIntoView({behavior:'smooth'});
+      btn.disabled = false;
+      btn.textContent = 'Enviar Solicitud';
+      return;
+    }
+
+    const s = result.solicitud;
+    document.getElementById('success-details').innerHTML = `
+      <div style="display:flex;justify-content:space-between;font-size:.875rem;padding:.35rem 0;border-bottom:1px solid #F1F5F9">
+        <span style="color:#64748B">Número de solicitud</span>
+        <span style="font-weight:700;color:#10B981">#${s.id}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.875rem;padding:.35rem 0;border-bottom:1px solid #F1F5F9">
+        <span style="color:#64748B">Fecha del evento</span>
+        <span style="font-weight:600;color:#0F172A">${UI.fmt.dateRange(s.fecha,s.fechaFin)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.875rem;padding:.35rem 0;border-bottom:1px solid #F1F5F9">
+        <span style="color:#64748B">Artículos seleccionados</span>
+        <span style="font-weight:600;color:#0F172A">${s.articulos.length} artículo${s.articulos.length!==1?'s':''}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.875rem;padding:.35rem 0;border-bottom:1px solid #F1F5F9">
+        <span style="color:#64748B">Total estimado</span>
+        <span style="font-weight:700;color:#10B981">${UI.fmt.money(s.total)} MXN</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.875rem;padding:.35rem 0">
+        <span style="color:#64748B">Flete</span>
+        <span style="font-weight:600;color:#D97706">Por asignar</span>
+      </div>`;
+
+    const m = document.getElementById('success-modal');
+    m.style.display = 'flex';
+    UI.updateCartBadge();
+}
+
+(async () => {
+  try {
+    await API.init(['articulos', 'solicitudes']);
+  } catch (err) { API.fatal(err); return; }
+  renderTopnav('');
+  UI.updateCartBadge();
+  renderSummary();
+  renderCalendar();
+})();
+
+</script>
+</body>
+</html>

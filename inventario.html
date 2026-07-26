@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analíticas — Aura Eventos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-mount"></div>
+  <div class="main-content">
+    <div class="page-header">
+      <div class="page-title">Analíticas</div>
+      <div class="page-subtitle">Resumen del negocio en tiempo real</div>
+    </div>
+    <div class="page-body">
+      <div class="stats-grid" id="ana-stats"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:1.25rem">
+        <div class="card">
+          <h3 style="margin-bottom:1rem">Solicitudes por Estado</h3>
+          <div id="ana-estados"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:1rem">Categorías más solicitadas</h3>
+          <div id="ana-cats"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="../js/store.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/icons.js"></script>
+  <script src="../js/layout.js"></script>
+<script>
+
+Store.Auth.requireAuth('admin');
+
+(async () => {
+try {
+  await API.init(['articulos', 'solicitudes']);
+} catch (err) { API.fatal(err); return; }
+renderSidebar('analiticas');
+
+const sols  = Store.Solicitudes.all();
+const arts  = Store.Articulos.allAdmin();
+const pend  = sols.filter(s=>s.estado==='pendiente').length;
+const apro  = sols.filter(s=>s.estado==='aprobado').length;
+const rech  = sols.filter(s=>s.estado==='rechazado').length;
+const ing   = sols.filter(s=>s.estado==='aprobado').reduce((t,s)=>t+s.total,0);
+const ticket= apro>0 ? Math.round(ing/apro) : 0;
+const conv  = sols.length>0 ? Math.round((apro/sols.length)*100) : 0;
+
+document.getElementById('ana-stats').innerHTML = `
+  <div class="stat-card"><div class="stat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></div><div class="stat-value" style="font-size:1.25rem">${UI.fmt.money(ing)}</div><div class="stat-label">Ingresos totales (aprobado)</div></div>
+  <div class="stat-card"><div class="stat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></div><div class="stat-value">${sols.length}</div><div class="stat-label">Total solicitudes</div></div>
+  <div class="stat-card"><div class="stat-icon" style="color:var(--accent)">%</div><div class="stat-value">${conv}%</div><div class="stat-label">Tasa de conversión</div></div>
+  <div class="stat-card"><div class="stat-icon stat-icon-blue"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg></div><div class="stat-value" style="font-size:1.25rem">${UI.fmt.money(ticket)}</div><div class="stat-label">Ticket promedio</div></div>`;
+
+const estData = [
+  {label:'Pendientes', count:pend, color:'var(--warn)'},
+  {label:'Aprobadas',  count:apro, color:'var(--accent)'},
+  {label:'Rechazadas', count:rech, color:'var(--danger)'}
+];
+const maxEst = Math.max(...estData.map(e=>e.count),1);
+document.getElementById('ana-estados').innerHTML = estData.map(e=>`
+  <div style="margin-bottom:1rem">
+    <div style="display:flex;justify-content:space-between;font-size:.875rem;margin-bottom:.35rem">
+      <span style="color:var(--text2)">${e.label}</span>
+      <span style="font-weight:700">${e.count}</span>
+    </div>
+    <div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:${Math.round((e.count/maxEst)*100)}%;background:${e.color};height:100%"></div></div>
+  </div>`).join('');
+
+const catCount = {};
+sols.forEach(s => s.articulos.forEach(i => {
+  const a = Store.Articulos.byId(i.artId);
+  if (a) catCount[a.categoria] = (catCount[a.categoria]||0)+1;
+}));
+const sorted = Object.entries(catCount).sort((a,b)=>b[1]-a[1]);
+const maxCat = Math.max(...sorted.map(([,c])=>c),1);
+document.getElementById('ana-cats').innerHTML = sorted.length===0
+  ? '<p style="color:var(--text3)">Sin datos aún.</p>'
+  : sorted.map(([cat,count])=>`
+    <div style="margin-bottom:1rem">
+      <div style="display:flex;justify-content:space-between;font-size:.875rem;margin-bottom:.35rem">
+        <span style="color:var(--text2)">${cat}</span><span style="font-weight:700">${count}</span>
+      </div>
+      <div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:${Math.round((count/maxCat)*100)}%;height:100%"></div></div>
+    </div>`).join('');
+})();
+
+</script>
+</body>
+</html>

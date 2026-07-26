@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Perfil — Aura Eventos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+<div id="topnav-mount"></div>
+
+<main style="max-width:700px;margin:0 auto;padding:1.75rem 2rem">
+  <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem">
+    <button class="btn btn-ghost btn-sm" onclick="history.back()">← Volver</button>
+    <h1 style="font-size:1.4rem">Mi Perfil</h1>
+  </div>
+
+  <div class="card" style="margin-bottom:1.25rem;display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap">
+    <div class="avatar" style="width:72px;height:72px;font-size:1.75rem" id="p-avatar"></div>
+    <div>
+      <div style="font-size:1.125rem;font-weight:700" id="p-name"></div>
+      <div style="font-size:.875rem;color:var(--text3)" id="p-email"></div>
+      <div style="margin-top:.375rem"><span class="badge badge-approved">● Cliente verificado</span></div>
+    </div>
+    <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="UI.toast('Funcionalidad próximamente.','info')"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editar foto</button>
+  </div>
+
+  <div class="card" style="margin-bottom:1.25rem">
+    <h3 style="margin-bottom:1.25rem">Información Personal</h3>
+    <div id="profile-alert" style="margin-bottom:1rem"></div>
+    <div class="form-row" style="margin-bottom:.875rem">
+      <div class="form-group">
+        <label class="form-label">Nombre(s)</label>
+        <input type="text" class="form-control" id="p-nombre" placeholder="Tu nombre">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Apellidos</label>
+        <input type="text" class="form-control" id="p-apellidos" placeholder="Tus apellidos">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:.875rem">
+      <label class="form-label">Correo electrónico</label>
+      <input type="email" class="form-control" id="p-correo" disabled title="El correo no se puede modificar" placeholder="correo@ejemplo.com">
+    </div>
+    <div class="form-group" style="margin-bottom:1.25rem">
+      <label class="form-label">Teléfono de contacto</label>
+      <input type="tel" class="form-control" id="p-telefono" placeholder="55 1234 5678">
+    </div>
+    <button class="btn btn-primary" onclick="saveProfile()">Guardar cambios</button>
+  </div>
+
+  <div class="card" style="margin-bottom:1.25rem">
+    <h3 style="margin-bottom:1rem">Seguridad</h3>
+    <div class="form-group" style="margin-bottom:.875rem">
+      <label class="form-label">Contraseña actual</label>
+      <input type="password" class="form-control" id="p-pwd-old" placeholder="••••••••">
+    </div>
+    <div class="form-row" style="margin-bottom:1rem">
+      <div class="form-group">
+        <label class="form-label">Nueva contraseña</label>
+        <input type="password" class="form-control" id="p-pwd-new" placeholder="••••••••">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirmar nueva</label>
+        <input type="password" class="form-control" id="p-pwd-confirm" placeholder="••••••••">
+      </div>
+    </div>
+    <button class="btn btn-ghost" onclick="changePassword()">Cambiar contraseña</button>
+  </div>
+</main>
+
+<script src="../js/store.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/icons.js"></script>
+  <script src="../js/layout.js"></script>
+<script>
+
+const session = Store.Auth.requireAuth('cliente');
+if (!session) throw new Error('No session');
+renderTopnav('perfil');
+UI.updateCartBadge();
+
+document.getElementById('p-avatar').textContent   = session.avatar || session.nombre[0];
+document.getElementById('p-name').textContent      = `${session.nombre} ${session.apellidos||''}`;
+document.getElementById('p-email').textContent     = session.email;
+document.getElementById('p-nombre').value          = session.nombre;
+document.getElementById('p-apellidos').value       = session.apellidos||'';
+document.getElementById('p-correo').value          = session.email;
+document.getElementById('p-telefono').value        = session.telefono||'';
+
+async function saveProfile() {
+  const nombre    = document.getElementById('p-nombre').value.trim();
+  const apellidos = document.getElementById('p-apellidos').value.trim();
+  const telefono  = document.getElementById('p-telefono').value.trim();
+
+  if (!nombre) { UI.toast('El nombre es requerido.','error'); return; }
+
+  const r = await Store.Usuarios.actualizarPerfil(session.id, { nombre, apellidos, telefono });
+  if (r.error) { UI.toast(r.error, 'error'); return; }
+
+  const s = Store.Auth.session();
+  s.nombre    = r.user.nombre;
+  s.apellidos = r.user.apellidos;
+  s.telefono  = r.user.telefono;
+  s.avatar    = r.user.avatar;
+  localStorage.setItem('aura_session', JSON.stringify(s));
+
+  document.getElementById('p-avatar').textContent = s.avatar;
+  document.getElementById('p-name').textContent   = `${s.nombre} ${s.apellidos}`;
+  UI.toast('Perfil actualizado correctamente.', 'success');
+}
+
+async function changePassword() {
+  const oldPwd  = document.getElementById('p-pwd-old').value;
+  const newPwd  = document.getElementById('p-pwd-new').value;
+  const confirm = document.getElementById('p-pwd-confirm').value;
+  if (!oldPwd||!newPwd||!confirm) { UI.toast('Completa todos los campos de contraseña.','warning'); return; }
+  if (newPwd!==confirm)           { UI.toast('Las nuevas contraseñas no coinciden.','error'); return; }
+  if (newPwd.length<6)            { UI.toast('La contraseña debe tener al menos 6 caracteres.','error'); return; }
+
+  const r = await Store.Usuarios.cambiarPassword(session.id, oldPwd, newPwd);
+  if (r.error) { UI.toast(r.error, 'error'); return; }
+
+  document.getElementById('p-pwd-old').value='';
+  document.getElementById('p-pwd-new').value='';
+  document.getElementById('p-pwd-confirm').value='';
+  UI.toast('Contraseña actualizada correctamente.','success');
+}
+
+</script>
+</body>
+</html>

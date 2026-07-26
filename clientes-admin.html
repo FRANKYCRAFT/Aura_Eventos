@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Inventario — Aura Eventos</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-mount"></div>
+  <div class="main-content">
+
+    <div class="page-header">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+        <div>
+          <div class="page-title">Inventario de Artículos</div>
+          <div class="page-subtitle">Gestiona el stock, tarifas y disponibilidad</div>
+        </div>
+        <div style="display:flex;gap:.625rem">
+          <button class="btn btn-ghost btn-sm" onclick="openCatModal()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Gestionar Categorías
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="exportarReporte()">Descargar Reporte</button>
+          <button class="btn btn-primary" onclick="openArtModal(null)">+ Agregar Artículo</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body" style="padding-top:.875rem">
+
+      <div id="inv-stats" style="display:flex;gap:.625rem;flex-wrap:wrap;margin-bottom:1.125rem"></div>
+
+      <div style="display:flex;gap:.625rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem">
+        <div style="position:relative;flex:1;min-width:200px">
+          <span style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none" id="search-icon-inv"></span>
+          <input type="text" class="form-control" id="inv-search"
+                 placeholder="Buscar artículo, código o categoría..."
+                 style="padding-left:2.25rem;font-size:.875rem" oninput="renderInventory()">
+        </div>
+        <select class="form-control" id="inv-cat"    style="width:180px" onchange="renderInventory()">
+          <option value="">Todas las categorías</option>
+        </select>
+        <select class="form-control" id="inv-estado" style="width:160px" onchange="renderInventory()">
+          <option value="">Todos los estados</option>
+          <option value="activo">Activos</option>
+          <option value="inactivo">Deshabilitados</option>
+        </select>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Artículo</th>
+                <th>Categoría</th>
+                <th>Código</th>
+                <th style="text-align:center">Stock Total</th>
+                <th style="text-align:center">Disponibles</th>
+                <th style="text-align:center">Rentados</th>
+                <th>Estado</th>
+                <th>Tarifa/Evento</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="inv-tbody"></tbody>
+          </table>
+        </div>
+        <div style="padding:.75rem 1.25rem;border-top:1px solid var(--card-border);font-size:.8125rem;color:var(--text-muted)" id="inv-footer"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="art-modal" style="display:none">
+  <div class="modal-box" style="max-width:580px">
+    <div class="modal-header">
+      <h3 class="modal-title" id="art-modal-title">Nuevo Artículo</h3>
+      <button class="modal-close" onclick="closeArtModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="art-id">
+
+      <div class="form-group" style="margin-bottom:1rem">
+        <label class="form-label">Imagen del artículo</label>
+        <div class="file-upload-wrap">
+
+          <input type="file" id="art-imagen" accept="image/*"
+                 style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"
+                 onchange="handleImageUpload(this)">
+
+          <div class="file-upload-area" id="upload-area"
+               onclick="document.getElementById('art-imagen').click()"
+               ondragover="event.preventDefault();this.classList.add('dragover')"
+               ondragleave="this.classList.remove('dragover')"
+               ondrop="handleDrop(event)">
+            <div class="upload-placeholder" id="upload-placeholder">
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="1.5" style="color:var(--text-muted);margin:0 auto .5rem;display:block">
+                <polyline points="16 16 12 12 8 16"/>
+                <line x1="12" y1="12" x2="12" y2="21"/>
+                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+              </svg>
+              <div style="font-size:.875rem;font-weight:600;color:var(--text-secondary)">Haz clic o arrastra una imagen</div>
+              <div style="font-size:.78rem;color:var(--text-muted);margin-top:.25rem">PNG, JPG, WebP — máx. 2 MB</div>
+            </div>
+          </div>
+
+          <div id="img-preview-wrap" style="display:none;margin-top:.625rem">
+            <img id="img-preview" class="file-preview" alt="Vista previa">
+            <div style="display:flex;align-items:center;gap:.5rem;margin-top:.4rem">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="var(--accent)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <span style="font-size:.8125rem;color:var(--accent);font-weight:600">Imagen cargada correctamente</span>
+              <button type="button" class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="removeImage()">
+                Quitar imagen
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-bottom:.875rem">
+        <div class="form-group">
+          <label class="form-label">Nombre del artículo *</label>
+          <input type="text" class="form-control" id="art-nombre" placeholder="Mesa Candy Premium">
+          <span class="form-error" id="err-nombre"></span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Código de Artículo *</label>
+          <input type="text" class="form-control" id="art-sku" placeholder="MC-001-ORO">
+          <span class="form-error" id="err-sku"></span>
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom:.875rem">
+        <div class="form-group">
+          <label class="form-label">Categoría *</label>
+          <select class="form-control" id="art-cat">
+
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio base (MXN) *</label>
+          <input type="number" class="form-control" id="art-precio" placeholder="1200" min="0">
+          <span class="form-error" id="err-precio"></span>
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom:.875rem">
+        <div class="form-group">
+          <label class="form-label">Stock físico total *</label>
+          <input type="number" class="form-control" id="art-stock" placeholder="10" min="1">
+          <span class="form-error" id="err-stock"></span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dimensiones</label>
+          <input type="text" class="form-control" id="art-dim" placeholder="1.8m × 0.6m">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:.875rem">
+        <label class="form-label">Descripción</label>
+        <textarea class="form-control" id="art-desc" rows="2" placeholder="Descripción del artículo..."></textarea>
+      </div>
+      <div class="form-row" style="margin-bottom:.875rem">
+        <div class="form-group">
+          <label class="form-label">Material</label>
+          <input type="text" class="form-control" id="art-material" placeholder="MDF lacado blanco">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Incluye</label>
+          <input type="text" class="form-control" id="art-incluye" placeholder="Montaje + desmontaje">
+        </div>
+      </div>
+
+      <div id="price-warn" class="alert alert-warn" style="display:none">
+        <span class="alert-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2"><path d="m10.29 3.86-8.6 14.9A2 2 0 0 0 3.45 22h17.1a2 2 0 0 0 1.76-2.95l-8.58-14.9a2 2 0 0 0-3.44 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        <div class="alert-content">Las solicitudes anteriores conservarán su precio original. Las nuevas usarán el precio actualizado.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeArtModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveArticulo()" id="save-art-btn">Guardar Artículo</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/store.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/icons.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+
+Store.Auth.requireAuth('admin');
+document.getElementById('search-icon-inv').innerHTML = Icons.get('search', 15);
+
+let imgBase64 = null;
+let originalPrice = null;
+
+function handleImageUpload(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    UI.toast('La imagen no debe superar 2 MB.', 'error');
+    input.value = '';
+    return;
+  }
+  if (!file.type.startsWith('image/')) {
+    UI.toast('Por favor selecciona un archivo de imagen válido.', 'error');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    imgBase64 = e.target.result;
+    document.getElementById('img-preview').src           = imgBase64;
+    document.getElementById('img-preview-wrap').style.display  = 'block';
+    document.getElementById('upload-placeholder').style.display = 'none';
+    document.getElementById('upload-area').style.borderColor   = 'var(--accent)';
+  };
+  reader.onerror = function() {
+    UI.toast('Error al leer la imagen. Intenta de nuevo.', 'error');
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleDrop(event) {
+  event.preventDefault();
+  document.getElementById('upload-area').classList.remove('dragover');
+  const file = event.dataTransfer.files[0];
+  if (!file) return;
+
+  try {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('art-imagen').files = dt.files;
+  } catch(e) {  }
+
+  const fakeInput = { files: [file] };
+  handleImageUpload(fakeInput);
+}
+
+function removeImage() {
+  imgBase64 = null;
+  document.getElementById('art-imagen').value                 = '';
+  document.getElementById('img-preview-wrap').style.display   = 'none';
+  document.getElementById('upload-placeholder').style.display = 'block';
+  document.getElementById('upload-area').style.borderColor    = '#CBD5E1';
+}
+
+function renderStats() {
+  const arts    = Store.Articulos.allAdmin();
+  const active  = arts.filter(a => a.estado === 'activo');
+  const low     = active.filter(a => a.stockDisponible <= 3 && a.stockDisponible > 0);
+  const disabled= arts.filter(a => a.estado === 'inactivo');
+  const tStock  = active.reduce((t,a) => t + a.stockTotal, 0);
+  const rentados= active.reduce((t,a) => t + a.rentados,   0);
+  const util    = tStock > 0 ? Math.round((rentados/tStock)*100) : 0;
+
+  const chip = (color, val, label) =>
+    `<div style="display:flex;align-items:center;gap:.5rem;background:var(--card-bg);border:1px solid var(--card-border);
+     border-radius:6px;padding:.45rem .875rem;font-size:.875rem;box-shadow:var(--card-shadow)">
+       <span style="color:${color};font-size:.6rem">●</span>
+       <strong style="color:var(--text-primary)">${val}</strong>
+       <span style="color:var(--text-muted)">${label}</span>
+     </div>`;
+
+  document.getElementById('inv-stats').innerHTML =
+    chip('var(--accent)', active.length, 'Activos') +
+    chip('var(--warn)',   low.length,    'Stock bajo') +
+    chip('var(--text-muted)', disabled.length, 'Deshabilitados') +
+    `<div style="margin-left:auto;display:flex;align-items:center;gap:.5rem;background:var(--accent-dim);
+      border:1px solid var(--accent-light);border-radius:6px;padding:.45rem .875rem;font-size:.875rem">
+       <strong style="color:var(--accent)">${util}%</strong>
+       <span style="color:var(--accent-dark)">Utilización</span>
+     </div>`;
+
+  refreshCategorySelects();
+}
+
+function renderInventory() {
+  const q   = document.getElementById('inv-search').value.toLowerCase().trim();
+  const cat = document.getElementById('inv-cat').value;
+  const est = document.getElementById('inv-estado').value;
+
+  let arts = Store.Articulos.allAdmin();
+  if (q)   arts = arts.filter(a => a.nombre.toLowerCase().includes(q) || (a.sku||'').toLowerCase().includes(q) || a.categoria.toLowerCase().includes(q));
+  if (cat) arts = arts.filter(a => a.categoria === cat);
+  if (est) arts = arts.filter(a => a.estado === est);
+
+  document.getElementById('inv-footer').textContent =
+    `Mostrando ${arts.length} de ${Store.Articulos.allAdmin().length} artículos`;
+
+  if (arts.length === 0) {
+    document.getElementById('inv-tbody').innerHTML =
+      `<tr><td colspan="9"><div class="empty-state"><h3>Sin artículos</h3><p>Prueba otros filtros o agrega uno nuevo.</p></div></td></tr>`;
+    return;
+  }
+
+  document.getElementById('inv-tbody').innerHTML = arts.map(a => {
+    const pct   = a.stockTotal > 0 ? Math.round((a.stockDisponible/a.stockTotal)*100) : 0;
+    const isLow = a.stockDisponible <= 3 && a.stockDisponible > 0;
+    const badgeEl = a.estado === 'activo'
+      ? (isLow ? '<span class="badge badge-low">Stock Bajo</span>' : '<span class="badge badge-approved">Activo</span>')
+      : '<span class="badge badge-disabled">Deshabilitado</span>';
+
+    const imgEl = a.imagen
+      ? `<img src="${a.imagen}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;border:1px solid var(--card-border)">`
+      : `<div style="width:40px;height:40px;border-radius:6px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;font-size:1.25rem;border:1px solid var(--card-border)">${UI.catIcon(a.categoria)}</div>`;
+
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:.75rem">
+          ${imgEl}
+          <div>
+            <div style="font-size:.875rem;font-weight:600;color:var(--text-primary)">${a.nombre}</div>
+            <div style="font-size:.72rem;color:var(--text-muted)">Código: ${a.sku||'—'}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="badge badge-cat">${a.categoria}</span></td>
+      <td style="font-size:.8125rem;color:var(--text-muted);font-family:monospace">${a.sku||'—'}</td>
+      <td style="text-align:center">
+        <span style="font-weight:700;font-size:1rem;color:var(--text-primary)">${a.stockTotal}</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${isLow?'var(--warn)':'var(--accent)'}"></div></div>
+      </td>
+      <td style="text-align:center;font-weight:700;color:${isLow?'var(--warn)':'var(--accent)'}">${a.stockDisponible}</td>
+      <td style="text-align:center;color:var(--text-muted)">${a.rentados}</td>
+      <td>${badgeEl}</td>
+      <td style="font-weight:700;color:var(--text-primary)">${UI.fmt.money(a.precio)}</td>
+      <td>
+        <div style="display:flex;gap:.3rem">
+          <button class="btn btn-sm btn-ghost" onclick="openArtModal('${a.id}')" title="Editar">
+            ${Icons.get('edit',14)} Editar
+          </button>
+          ${a.estado === 'activo'
+            ? `<button class="btn btn-sm btn-ghost" style="color:var(--warn)" onclick="toggleEstado('${a.id}','inactivo')" title="Deshabilitar">${Icons.get('eye-off',14)}</button>`
+            : `<button class="btn btn-sm btn-ghost" style="color:var(--accent)" onclick="toggleEstado('${a.id}','activo')"  title="Habilitar">${Icons.get('eye',14)}</button>`}
+          <button class="btn btn-sm btn-ghost" style="color:var(--danger)" onclick="deleteArt('${a.id}')" title="Eliminar">
+            ${Icons.get('trash',14)}
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openArtModal(id) {
+  refreshCategorySelects();
+  imgBase64 = null; originalPrice = null;
+  const isEdit = !!id;
+  document.getElementById('art-modal-title').textContent = isEdit ? 'Editar Artículo' : 'Nuevo Artículo';
+  document.getElementById('art-id').value = id || '';
+  document.getElementById('price-warn').style.display = 'none';
+
+  imgBase64 = null;
+  document.getElementById('art-imagen').value                 = '';
+  document.getElementById('img-preview-wrap').style.display   = 'none';
+  document.getElementById('upload-placeholder').style.display = 'block';
+  document.getElementById('upload-area').style.borderColor    = '#CBD5E1';
+
+  ['nombre','sku','precio','stock','dim','desc','material','incluye'].forEach(f => {
+    const el = document.getElementById('art-'+f); if (el) el.value = '';
+  });
+  ['nombre','sku','precio','stock'].forEach(f => {
+    const el = document.getElementById('err-'+f); if (el) el.textContent = '';
+  });
+
+  if (isEdit) {
+    const a = Store.Articulos.byId(id);
+    if (!a) return;
+    originalPrice = a.precio;
+    document.getElementById('art-nombre').value   = a.nombre;
+    document.getElementById('art-sku').value      = a.sku || '';
+    document.getElementById('art-cat').value      = a.categoria;
+    document.getElementById('art-precio').value   = a.precio;
+    document.getElementById('art-stock').value    = a.stockTotal;
+    document.getElementById('art-dim').value      = a.dimensiones || '';
+    document.getElementById('art-desc').value     = a.descripcion || '';
+    document.getElementById('art-material').value = a.material || '';
+    document.getElementById('art-incluye').value  = a.incluye || '';
+    if (a.imagen) {
+      imgBase64 = a.imagen;
+      document.getElementById('img-preview').src              = imgBase64;
+      document.getElementById('img-preview-wrap').style.display  = 'block';
+      document.getElementById('upload-placeholder').style.display = 'none';
+      document.getElementById('upload-area').style.borderColor    = 'var(--accent)';
+    }
+    document.getElementById('art-precio').addEventListener('input', function() {
+      document.getElementById('price-warn').style.display =
+        (Number(this.value) !== originalPrice && Number(this.value) > 0) ? 'flex' : 'none';
+    }, { once: true });
+  }
+
+  const m = document.getElementById('art-modal');
+  m.style.display = 'flex';
+  requestAnimationFrame(() => m.classList.add('active'));
+  m.addEventListener('click', e => { if (e.target === m) closeArtModal(); });
+}
+
+function closeArtModal() {
+  const m = document.getElementById('art-modal');
+  m.classList.remove('active');
+  setTimeout(() => { m.style.display = 'none'; }, 200);
+}
+
+async function saveArticulo() {
+  const id      = document.getElementById('art-id').value;
+  const nombre  = document.getElementById('art-nombre').value.trim();
+  const sku     = document.getElementById('art-sku').value.trim();
+  const precio  = Number(document.getElementById('art-precio').value);
+  const stock   = Number(document.getElementById('art-stock').value);
+
+  let valid = true;
+  const setErr = (f, msg) => { document.getElementById('err-'+f).textContent = msg; valid = false; };
+  const clrErr = (f) => { document.getElementById('err-'+f).textContent = ''; };
+
+  !nombre       ? setErr('nombre','Requerido')       : clrErr('nombre');
+  !sku          ? setErr('sku','Requerido')           : clrErr('sku');
+  !precio||precio<0 ? setErr('precio','Precio inválido') : clrErr('precio');
+  !stock||stock<1   ? setErr('stock','Mínimo 1 unidad')  : clrErr('stock');
+  if (!valid) return;
+
+  const data = {
+    nombre, sku, precio, stockTotal: stock,
+    categoria:   document.getElementById('art-cat').value,
+    dimensiones: document.getElementById('art-dim').value.trim(),
+    descripcion: document.getElementById('art-desc').value.trim(),
+    material:    document.getElementById('art-material').value.trim(),
+    incluye:     document.getElementById('art-incluye').value.trim(),
+    imagen:      imgBase64
+  };
+
+  const btn = document.getElementById('save-art-btn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
+  const r = id ? await Store.Articulos.update(id, data)
+               : await Store.Articulos.create(data);
+  btn.disabled = false; btn.textContent = 'Guardar Artículo';
+  if (r.error) { UI.toast(r.error, 'error'); return; }
+  UI.toast(id ? `"${nombre}" actualizado.` : `"${nombre}" agregado al catálogo.`, 'success');
+  closeArtModal(); renderStats(); renderInventory();
+}
+
+function toggleEstado(id, nuevoEstado) {
+  const a = Store.Articulos.byId(id);
+  UI.modal({
+    title: nuevoEstado === 'inactivo' ? 'Deshabilitar artículo' : 'Habilitar artículo',
+    body:  `<p style="color:var(--text-secondary)">${nuevoEstado==='inactivo'
+            ? `"${a.nombre}" dejará de mostrarse en el catálogo. El historial de rentas se conserva.`
+            : `"${a.nombre}" volverá a aparecer en el catálogo del cliente.`}</p>`,
+    confirmLabel: nuevoEstado === 'inactivo' ? 'Deshabilitar' : 'Habilitar',
+    confirmClass: nuevoEstado === 'inactivo' ? 'btn-danger' : 'btn-primary',
+    onConfirm: async () => {
+      const r = nuevoEstado === 'inactivo'
+        ? await Store.Articulos.deshabilitar(id)
+        : await Store.Articulos.habilitar(id);
+      if (r.error) { UI.toast(r.error, 'error'); return; }
+      UI.toast(`Artículo ${nuevoEstado==='inactivo'?'deshabilitado':'habilitado'}.`,
+               nuevoEstado==='inactivo'?'warning':'success');
+      renderStats(); renderInventory();
+    }
+  });
+}
+
+function deleteArt(id) {
+  const a = Store.Articulos.byId(id);
+  UI.modal({
+    title: 'Eliminar artículo',
+    body:  `<div class="alert alert-error" style="margin-bottom:1rem">
+              <span class="alert-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m10.29 3.86-8.6 14.9A2 2 0 0 0 3.45 22h17.1a2 2 0 0 0 1.76-2.95l-8.58-14.9a2 2 0 0 0-3.44 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+              <div class="alert-content">Esta acción es irreversible. Considera deshabilitar en lugar de eliminar para conservar el historial.</div>
+            </div>
+            <p style="color:var(--text-secondary)">¿Eliminar permanentemente <strong>"${a?.nombre}"</strong>?</p>`,
+    confirmLabel: 'Eliminar definitivamente',
+    confirmClass: 'btn-danger',
+    onConfirm: async () => {
+      const r = await Store.Articulos.eliminar(id);
+      if (r.error) { UI.toast(r.error, 'error'); return; }
+      UI.toast(`"${a?.nombre}" eliminado.`, 'warning');
+      renderStats(); renderInventory();
+    }
+  });
+}
+
+function exportarReporte() {
+  const arts = Store.Articulos.allAdmin();
+  const rows = [['Nombre','Código','Categoría','Precio','Stock Total','Disponibles','Rentados','Estado']];
+  arts.forEach(a => rows.push([a.nombre,a.sku||'',a.categoria,a.precio,a.stockTotal,a.stockDisponible,a.rentados,a.estado]));
+  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const el  = document.createElement('a');
+  el.href   = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+  el.download = `inventario-${new Date().toISOString().split('T')[0]}.csv`;
+  el.click();
+  UI.toast('Reporte descargado correctamente.', 'success');
+}
+
+(async () => {
+  try {
+    await API.init(['articulos', 'solicitudes', 'categorias']);
+  } catch (err) { API.fatal(err); return; }
+  renderSidebar('inventario');
+  renderStats();
+  renderInventory();
+  refreshCategorySelects();
+})();
+
+function openCatModal() {
+  renderCatList();
+  const m = document.getElementById('cat-modal');
+  m.style.display = 'flex';
+  requestAnimationFrame(() => m.classList.add('active'));
+  m.addEventListener('click', e => { if (e.target === m) closeCatModal(); });
+  document.getElementById('new-cat-input').focus();
+}
+
+function closeCatModal() {
+  const m = document.getElementById('cat-modal');
+  m.classList.remove('active');
+  setTimeout(() => { m.style.display = 'none'; }, 200);
+
+  refreshCategorySelects();
+  renderStats();
+  renderInventory();
+}
+
+function renderCatList() {
+  var cats    = Store.Categorias.all();
+  var errEl   = document.getElementById('cat-error');
+  var countEl = document.getElementById('cat-count');
+  var listEl  = document.getElementById('cat-list');
+  if (errEl)   errEl.textContent   = '';
+  if (countEl) countEl.textContent = cats.length;
+  if (!listEl) return;
+
+  var artsByCat = {};
+  Store.Articulos.allAdmin().forEach(function(a) {
+    artsByCat[a.categoria] = (artsByCat[a.categoria] || 0) + 1;
+  });
+
+  if (cats.length === 0) {
+    listEl.innerHTML = '<p style="font-size:.875rem;color:var(--text-muted);text-align:center;padding:1rem">Sin categorias. Agrega una arriba.</p>';
+    return;
+  }
+
+  listEl.innerHTML = cats.map(function(cat) {
+    var count  = artsByCat[cat] || 0;
+    var canDel = count === 0;
+    var delBtn = canDel
+      ? '<button onclick="removeCategoria(this.dataset.cat)" data-cat="' + cat.replace(/"/g, '&quot;') + '"'
+        + ' style="background:none;border:none;padding:.3rem;border-radius:4px;cursor:pointer;color:#EF4444;display:flex;align-items:center"'
+        + ' title="Eliminar categoria">'
+        + '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'
+        + '<polyline points="3 6 5 6 21 6"/>'
+        + '<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>'
+        + '<path d="M10 11v6"/><path d="M14 11v6"/>'
+        + '<path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>'
+        + '</svg></button>'
+      : '<button disabled style="background:none;border:none;padding:.3rem;color:#CBD5E1;cursor:not-allowed;display:flex;align-items:center"'
+        + ' title="Tiene articulos asignados — no se puede eliminar">'
+        + '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'
+        + '<polyline points="3 6 5 6 21 6"/>'
+        + '<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>'
+        + '<path d="M10 11v6"/><path d="M14 11v6"/>'
+        + '</svg></button>';
+
+    var countColor = count > 0 ? 'background:var(--accent-dim);color:var(--accent-dark)' : 'background:#F1F5F9;color:var(--text-muted)';
+
+    return '<div style="display:flex;align-items:center;gap:.625rem;padding:.625rem .875rem;'
+         + 'background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;margin-bottom:2px">'
+         + '<div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0"></div>'
+         + '<span style="flex:1;font-size:.875rem;font-weight:500;color:var(--text-primary)">' + cat + '</span>'
+         + '<span style="font-size:.72rem;padding:.15rem .5rem;border-radius:99px;font-weight:600;' + countColor + '">'
+         + count + ' art.</span>'
+         + delBtn
+         + '</div>';
+  }).join('');
+}
+
+async function addCategoria() {
+  const input  = document.getElementById('new-cat-input');
+  const errEl  = document.getElementById('cat-error');
+  const nombre = input.value.trim();
+
+  if (!nombre) {
+    errEl.textContent = 'Escribe el nombre de la categoría.';
+    input.focus();
+    return;
+  }
+
+  const result = await Store.Categorias.add(nombre);
+  if (result.error) {
+    errEl.textContent = result.error;
+    input.focus();
+    return;
+  }
+
+  input.value = '';
+  errEl.textContent = '';
+  renderCatList();
+  UI.toast(`Categoría "${nombre}" agregada.`, 'success');
+}
+
+function removeCategoria(nombre) {
+  UI.modal({
+    title: 'Eliminar categoría',
+    body:  `<p style="color:var(--text-secondary)">¿Eliminar la categoría <strong>"${nombre}"</strong>? Esta acción no se puede deshacer.</p>`,
+    confirmLabel: 'Eliminar',
+    confirmClass: 'btn-danger',
+    onConfirm: async () => {
+      const result = await Store.Categorias.remove(nombre);
+      if (result.error) {
+        UI.toast(result.error, 'error');
+        return;
+      }
+      renderCatList();
+      refreshCategorySelects();
+      UI.toast(`Categoría "${nombre}" eliminada.`, 'warning');
+    }
+  });
+}
+
+/* Refresh all <select id="art-cat"> and <select id="inv-cat"> with latest categories */
+function refreshCategorySelects() {
+  const cats = Store.Categorias.all();
+
+  // Form select (Agregar/Editar artículo)
+  const artCatSel = document.getElementById('art-cat');
+  if (artCatSel) {
+    const current = artCatSel.value;
+    artCatSel.innerHTML = cats.map(c =>
+      `<option value="${c}"${c === current ? ' selected' : ''}>${c}</option>`
+    ).join('');
+  }
+
+  // Filter select (inventory filter bar)
+  const invCatSel = document.getElementById('inv-cat');
+  if (invCatSel) {
+    const current = invCatSel.value;
+    invCatSel.innerHTML = '<option value="">Todas las categorías</option>' +
+      cats.map(c => `<option value="${c}"${c === current ? ' selected' : ''}>${c}</option>`).join('');
+  }
+}
+
+</script>
+
+<div class="modal-overlay" id="cat-modal" style="display:none">
+  <div class="modal-box" style="max-width:480px">
+
+    <div class="modal-header">
+      <h3 class="modal-title">Gestionar Categorías</h3>
+      <button class="modal-close" onclick="closeCatModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div style="margin-bottom:1.25rem">
+        <label class="form-label" style="margin-bottom:.5rem;display:block">Nueva categoría</label>
+        <div style="display:flex;gap:.5rem">
+          <input type="text" class="form-control" id="new-cat-input"
+                 placeholder="Ej: Mesas Dulces Premium" style="flex:1"
+                 onkeydown="if(event.key==='Enter')addCategoria()">
+          <button class="btn btn-primary" onclick="addCategoria()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Agregar
+          </button>
+        </div>
+        <div class="form-error" id="cat-error" style="margin-top:.35rem"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+        <span style="font-size:.8125rem;font-weight:600;color:var(--text-secondary)">
+          Categorías activas (<span id="cat-count">0</span>)
+        </span>
+      </div>
+
+      <div id="cat-list"
+           style="display:flex;flex-direction:column;gap:.25rem;max-height:300px;overflow-y:auto">
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeCatModal()">Listo</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
