@@ -31,7 +31,6 @@ public class AuthHandler extends BaseHandler {
                 return;
             }
 
-            // Llamada al servicio para verificar usuario/password y generar token
             Map<String, Object> respuesta = authService.login(email, password);
 
             sendJson(ex, 200, exito("Inicio de sesión exitoso", respuesta));
